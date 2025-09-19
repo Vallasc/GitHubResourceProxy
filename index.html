@@ -9,12 +9,14 @@
       padding: 0;
       height: 100vh;
       width: 100vw;
-      display: flex;
-      flex-direction: column;
       background: #fff;
       font-family: sans-serif;
       box-sizing: border-box;
       overflow: hidden;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
     }
     .viewer {
       flex: 1;
@@ -22,22 +24,22 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      background: #fff;
       min-height: 0;
-      position: relative;
+      height: calc(100vh - 40px);
     }
     .viewer a {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: block;
       max-width: 100%;
       max-height: 100%;
       text-decoration: none;
+      line-height: 0;
     }
     img {
       max-width: 100%;
       max-height: 100%;
-      height: auto;
       width: auto;
+      height: auto;
       object-fit: contain;
       cursor: pointer;
       border: none;
