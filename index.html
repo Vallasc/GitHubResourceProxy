@@ -7,14 +7,26 @@
     body {
       margin: 0;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       background: #fff;
+      font-family: sans-serif;
     }
     img {
       max-width: 100%;
-      max-height: 100%;
+      max-height: 80vh;
+      cursor: pointer;
+      border: 1px solid #ccc;
+    }
+    p {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: #666;
+      word-break: break-all;
+      text-align: center;
+      padding: 0 1rem;
     }
   </style>
 </head>
@@ -24,10 +36,20 @@
     const src = params.get("src");
 
     if (src) {
+      const link = document.createElement("a");
+      link.href = src;
+      link.target = "_blank"; // apre in nuova scheda
+
       const img = document.createElement("img");
       img.src = src;
       img.alt = "Loaded from query param";
-      document.body.appendChild(img);
+      link.appendChild(img);
+
+      const caption = document.createElement("p");
+      caption.textContent = src;
+
+      document.body.appendChild(link);
+      document.body.appendChild(caption);
     } else {
       document.body.innerHTML = "<p>No image found</p>";
     }
