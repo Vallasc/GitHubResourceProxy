@@ -3,54 +3,139 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visualizzatore Markdown</title>
+  <title>Markdown Viewer</title>
+
+  <!-- Stile simile a Confluence -->
   <style>
     body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
       margin: 40px auto;
       padding: 0 20px;
       line-height: 1.6;
+      background-color: #fdfdfd;
+      color: #1b1b1b;
     }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
+      font-weight: 600;
+    }
+    h1 { font-size: 2em; border-bottom: 2px solid #ddd; padding-bottom: 0.3em; }
+    h2 { font-size: 1.6em; border-bottom: 1px solid #eee; padding-bottom: 0.2em; }
+    h3 { font-size: 1.3em; }
+    p { margin: 0.8em 0; }
+    a { color: #0052cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul, ol { padding-left: 1.5em; margin: 0.5em 0; }
     pre {
-      background-color: #f5f5f5;
+      background-color: #f6f8fa;
       padding: 10px;
       overflow-x: auto;
+      border-radius: 4px;
+      font-size: 0.9em;
     }
     code {
       font-family: monospace;
-      background-color: #eee;
+      background-color: #f6f8fa;
       padding: 2px 4px;
       border-radius: 3px;
     }
+    blockquote {
+      border-left: 4px solid #ddd;
+      padding-left: 10px;
+      color: #555;
+      margin: 1em 0;
+      background-color: #f9f9f9;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px 10px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
   </style>
+
+  <!-- Libreria Prism.js per evidenziazione codice -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-markup.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-java.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/components/prism-bash.min.js"></script>
 </head>
 <body>
-  <h1>Visualizzatore Markdown</h1>
   <div id="content">Caricamento...</div>
 
-  <!-- Libreria per convertire Markdown in HTML -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
-    // Funzione per ottenere i parametri dall'URL
     function getParam(name) {
       const params = new URLSearchParams(window.location.search);
       return params.get(name);
     }
 
-    const markdownUrl = getParam('url');
+    function githubToRaw(url) {
+      const match = url.match(/https:\/\/github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/);
+      if (match) {
+        return `https://raw.githubusercontent.com/${match[1]}/${match[2]}/refs/heads/${match[3]}/${match[4]}`;
+      }
+      return url;
+    }
+
+    function rewriteMarkdownLinks(html, baseUrl) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const links = doc.querySelectorAll('a');
+      links.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.endsWith('.md')) {
+          let newUrl;
+          if (href.startsWith('http')) {
+            newUrl = '/?url=' + githubToRaw(href);
+          } else {
+            const basePath = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
+            newUrl = '/?url=' + encodeURIComponent(basePath + href);
+          }
+          link.setAttribute('href', newUrl);
+        }
+      });
+      return doc.body.innerHTML;
+    }
+
+    const inputUrl = getParam('url');
     const contentDiv = document.getElementById('content');
 
-    if (!markdownUrl) {
-      contentDiv.innerHTML = "<p>Nessun URL di Markdown passato come parametro.</p>";
+    if (!inputUrl) {
+      contentDiv.innerHTML = "<p>Nessun URL passato come parametro.</p>";
     } else {
-      fetch(markdownUrl)
-        .then(response => {
-          if (!response.ok) throw new Error('Impossibile caricare il file Markdown.');
-          return response.text();
+      const rawUrl = githubToRaw(inputUrl);
+      fetch(rawUrl)
+        .then(res => {
+          if (!res.ok) throw new Error('Impossibile caricare il file Markdown.');
+          return res.text();
         })
         .then(md => {
-          contentDiv.innerHTML = marked.parse(md);
+          // Converti Markdown in HTML
+          let html = marked.parse(md, {
+            gfm: true,
+            breaks: true
+          });
+
+          // Riscrivi i link Markdown relativi
+          html = rewriteMarkdownLinks(html, rawUrl);
+
+          // Inserisci HTML
+          contentDiv.innerHTML = html;
+
+          // Evidenzia tutto il codice
+          Prism.highlightAll();
         })
         .catch(err => {
           contentDiv.innerHTML = `<p>Errore: ${err.message}</p>`;
