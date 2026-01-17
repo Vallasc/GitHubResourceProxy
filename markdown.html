@@ -61,6 +61,10 @@
     th {
       background-color: #f2f2f2;
     }
+    img {
+      max-width: 100%;
+      height: auto;
+    }
   </style>
 
   <!-- Libreria Prism.js per evidenziazione codice -->
@@ -93,19 +97,23 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
       const links = doc.querySelectorAll('a');
+
+      const currentPage = window.location.pathname; // percorso della pagina corrente
+
       links.forEach(link => {
         const href = link.getAttribute('href');
         if (href && href.endsWith('.md')) {
           let newUrl;
           if (href.startsWith('http')) {
-            newUrl = '/?url=' + githubToRaw(href);
+            newUrl = currentPage + '?url=' + githubToRaw(href);
           } else {
             const basePath = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1);
-            newUrl = '/?url=' + encodeURIComponent(basePath + href);
+            newUrl = currentPage + '?url=' + encodeURIComponent(basePath + href);
           }
           link.setAttribute('href', newUrl);
         }
       });
+
       return doc.body.innerHTML;
     }
 
@@ -122,19 +130,9 @@
           return res.text();
         })
         .then(md => {
-          // Converti Markdown in HTML
-          let html = marked.parse(md, {
-            gfm: true,
-            breaks: true
-          });
-
-          // Riscrivi i link Markdown relativi
+          let html = marked.parse(md, { gfm: true, breaks: true });
           html = rewriteMarkdownLinks(html, rawUrl);
-
-          // Inserisci HTML
           contentDiv.innerHTML = html;
-
-          // Evidenzia tutto il codice
           Prism.highlightAll();
         })
         .catch(err => {
